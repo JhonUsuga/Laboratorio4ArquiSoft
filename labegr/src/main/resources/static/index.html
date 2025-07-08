@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Alertas TelcoNova</title>
+</head>
+<body>
+  <h1>Crear nueva alerta</h1>
+  <form id="alertForm">
+    <input name="titulo" placeholder="Título" required /><br />
+    <input name="mensaje" placeholder="Mensaje" required /><br />
+    <input name="tipo" placeholder="Tipo" required /><br />
+    <input name="destinatario" placeholder="Destinatario" required /><br />
+    <button type="submit">Crear</button>
+  </form>
+
+  <h2>Alertas existentes</h2>
+  <ul id="alertList"></ul>
+
+  <script>
+    const API_URL = "/graphql";
+
+    async function obtenerAlertas() {
+      const query = {
+        query: `
+          query {
+            obtenerAlertas {
+              id
+              titulo
+              mensaje
+              tipo
+              destinatario
+              fechaCreacion
+            }
+          }
+        `
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(query),
+        });
+
+        const json = await res.json();
+        const alertList = document.getElementById("alertList");
+        alertList.innerHTML = "";
+
+        json.data.obtenerAlertas.forEach(alerta => {
+          const li = document.createElement("li");
+          li.innerHTML = `<strong>${alerta.titulo}</strong> (${alerta.tipo}) → ${alerta.destinatario}<br><em>${alerta.mensaje}</em>`;
+          alertList.appendChild(li);
+        });
+      } catch (err) {
+        alert("Error al cargar alertas");
+        console.error(err);
+      }
+    }
+
+    document.getElementById("alertForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const variables = {
+        titulo: form.titulo.value,
+        mensaje: form.mensaje.value,
+        tipo: form.tipo.value,
+        destinatario: form.destinatario.value,
+      };
+
+      const mutation = {
+        query: `
+          mutation CrearAlerta($titulo: String!, $mensaje: String!, $tipo: String!, $destinatario: String!) {
+            crearAlerta(titulo: $titulo, mensaje: $mensaje, tipo: $tipo, destinatario: $destinatario) {
+              id
+              titulo
+            }
+          }
+        `,
+        variables
+      };
+
+      try {
+        await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(mutation),
+        });
+
+        form.reset();
+        obtenerAlertas();
+      } catch (err) {
+        alert("Error al crear la alerta");
+        console.error(err);
+      }
+    });
+
+    obtenerAlertas();
+  </script>
+</body>
+</html>
